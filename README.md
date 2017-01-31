@@ -74,8 +74,8 @@ function draw() {
 }
 
 ```
+![image](https://cloud.githubusercontent.com/assets/4214509/22459324/ad683116-e7d2-11e6-824c-80df79331b6a.png)
 
-![image](https://cloud.githubusercontent.com/assets/4214509/22458404/fa5f5002-e7ce-11e6-8a5b-117c97bcd8ce.png)
 
 ## Step 2: State
 
@@ -138,7 +138,7 @@ Get current state from Redux store and render it to canvas.
 // p5.js built-in method
 function setup() {
   createCanvas(BOARD_SIZE * SCALE, BOARD_SIZE * SCALE);
-  store.dispatch({ type: 'RESET' });
+  store.dispatch({ type: 'RESET' }); // Dispatch an action to reset the game
 }
 
 // p5.js built-in method, called every frame (60 frames per second)
@@ -149,7 +149,7 @@ function draw() {
 store.subscribe(_ => {
   // Draw background
   background(50);
-  const { snake, food } = store.getState();
+  const { snake, food } = store.getState(); // Get state from store
 
   // Draw snake
   fill(255);
@@ -167,3 +167,168 @@ store.subscribe(_ => {
 At this point, the game is still render the same, the only different is we have moved all the states to Redux Store. Next, we will try to move the snake.
 
 # Step 3: Move the snake
+In order to move the snake, we have to calculate the snake's new position based on its velocity. We also need to handle key press event to change the snake's velocity (direction).
+
+**game.js**:
+
+Handle key press, then dispatch the new velocity to Redux via `CHANGE_DIRECTION` action:
+```js
+// p5.js built-in method
+function keyPressed() {
+  let newVelocity;
+  if (keyCode === UP_ARROW) {
+    newVelocity = { x: 0, y: -1 };
+  } else if (keyCode === DOWN_ARROW) {
+    newVelocity = { x: 0, y: 1 };
+  } else if (keyCode === RIGHT_ARROW) {
+    newVelocity = { x: 1, y: 0 };
+  } else if (keyCode === LEFT_ARROW) {
+    newVelocity = { x: -1, y: 0 };
+  } else {
+    return;
+  }
+  store.dispatch({
+    type: 'CHANGE_DIRECTION',
+    data: newVelocity,
+  });
+}
+```
+
+Calculate new snake position in `draw` method, then dispatch the new position to Redux via `MOVE_SNAKE` action:
+```js
+// p5.js built-in method, called every frame (60 frames per second)
+function draw() {
+  const { snake, velocity, food } = store.getState();
+
+  // Calculate new head
+  let newX = snake[snake.length - 1].x + velocity.x;
+  let newY = snake[snake.length - 1].y + velocity.y;
+  if (newX > BOARD_SIZE - 1) newX = 0;
+  if (newX < 0) newX = BOARD_SIZE;
+  if (newY > BOARD_SIZE - 1) newY = 0;
+  if (newY < 0) newY = BOARD_SIZE;
+
+  const newHead = { x: newX, y: newY };
+
+  // Move snake
+  store.dispatch({
+    type: 'MOVE_SNAKE',
+    data: newHead,
+  });
+}
+```
+
+Now we handle the `CHANGE_DIRECTION` and `MOVE_SNAKE` action in our reducer:
+**store.js**
+```js
+const reducer = (state = INIT_STATE, action) => {
+  switch (action.type) {
+    case 'RESET':
+      return INIT_STATE;
+    case 'MOVE_SNAKE':
+      // New snake => Add new position to the snake's head
+      const newSnake = state.snake
+        .concat(action.data)
+      // Cut the old tail based on length (take the last state.length elements)
+        .slice(state.length * -1);
+      return Object.assign({}, state, {
+        snake: newSnake,
+      });
+    case 'CHANGE_DIRECTION':
+      return Object.assign({}, state, {
+        velocity: action.data,
+      });
+    default:
+      return state;
+  };
+};
+```
+
+**Notice:** I "move" the snake by creating a new head on every moves (calculated by velocity) and append it to the current snake, then I cut all the remaining tail based on current length of the snake. This way we don't have to maunally keep track of every "body part" of the snake to follow its head.
+
+At this point, we can start to play around with the snake by pressing arrow keys:
+
+![snake-redux-step-3](https://cloud.githubusercontent.com/assets/4214509/22459539/917b2e30-e7d3-11e6-9f51-f700e868f0a4.gif)
+
+## Step 4: Add logic for "eat" and "death" event.
+
+**game.js**
+We check for the "eat" or "death" event in `draw` method, then dispatch action to Redux according to the condition.
+```js
+function draw() {
+  const { snake, velocity, food } = store.getState();
+  
+  // ...
+  
+  // This method check if the head is collide with `target`
+  const omnomnom = target => newHead.x === target.x && newHead.y === target.y;
+
+  // Dead?
+  if (snake.find(omnomnom)) { // Did you just om..nom..nom your tail?
+    store.dispatch({ type: 'RESET' });
+    return;
+  }
+
+  // Eat food
+  if (omnomnom(food)) {
+    store.dispatch({ type: 'GROW' });
+
+    store.dispatch({
+      type: 'DROP_FOOD',
+      data: pickPositionThatDoesNotCollideWith(snake)
+    });
+  }
+
+  // Move snake
+  store.dispatch({
+    type: 'MOVE_SNAKE',
+    data: newHead,
+  });
+
+}
+```
+
+The `pickPositionThatDoesNotCollideWith(snake)` implementation:
+```js
+function pickPositionThatDoesNotCollideWith(arrayOfPosition) {
+  const position = () => ({
+    x: floor(random(BOARD_SIZE)),
+    y: floor(random(BOARD_SIZE)),
+  });
+
+  let pos = position();
+  while (arrayOfPosition.find(
+    target => pos.x === target.x && pos.y === target.y
+  )) {
+    pos = position();
+  }
+  return pos;
+}
+
+```
+
+**store.js**:
+Handle `DROP_FOOD` and `GROW` action:
+```js
+const reducer = (state = INIT_STATE, action) => {
+  switch (action.type) {
+    // ...
+    case 'DROP_FOOD':
+      return Object.assign({}, state, {
+        food: action.data,
+      });
+    case 'GROW':
+      return Object.assign({}, state, {
+        length: state.length + 1,
+      });
+    default:
+      return state;
+  };
+};
+
+```
+
+Now we can play the game.
+
+![snake-redux-step-4](https://cloud.githubusercontent.com/assets/4214509/22460157/408ec146-e7d6-11e6-9385-51c9d3228b75.gif)
+
