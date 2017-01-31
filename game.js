@@ -1,12 +1,49 @@
 // p5.js built-in method
 function setup() {
   createCanvas(BOARD_SIZE * SCALE, BOARD_SIZE * SCALE);
+  frameRate(10);
   store.dispatch({ type: 'RESET' });
 }
 
 // p5.js built-in method, called every frame (60 frames per second)
 function draw() {
-  // Move the snake here
+  const { snake, velocity, food } = store.getState();
+
+  // Calculate new head
+  let newX = snake[snake.length - 1].x + velocity.x;
+  let newY = snake[snake.length - 1].y + velocity.y;
+  if (newX > BOARD_SIZE - 1) newX = 0;
+  if (newX < 0) newX = BOARD_SIZE;
+  if (newY > BOARD_SIZE - 1) newY = 0;
+  if (newY < 0) newY = BOARD_SIZE;
+
+  const newHead = { x: newX, y: newY };
+
+  // Move snake
+  store.dispatch({
+    type: 'MOVE_SNAKE',
+    data: newHead,
+  });
+}
+
+// p5.js built-in method
+function keyPressed() {
+  let newVelocity;
+  if (keyCode === UP_ARROW) {
+    newVelocity = { x: 0, y: -1 };
+  } else if (keyCode === DOWN_ARROW) {
+    newVelocity = { x: 0, y: 1 };
+  } else if (keyCode === RIGHT_ARROW) {
+    newVelocity = { x: 1, y: 0 };
+  } else if (keyCode === LEFT_ARROW) {
+    newVelocity = { x: -1, y: 0 };
+  } else {
+    return;
+  }
+  store.dispatch({
+    type: 'CHANGE_DIRECTION',
+    data: newVelocity,
+  });
 }
 
 store.subscribe(_ => {

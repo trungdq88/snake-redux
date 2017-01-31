@@ -15,6 +15,19 @@ const reducer = (state = INIT_STATE, action) => {
   switch (action.type) {
     case 'RESET':
       return INIT_STATE;
+    case 'MOVE_SNAKE':
+      // New snake => Add new position to the snake's head
+      const newSnake = state.snake
+        .concat(action.data)
+      // Cut the old tail based on length (take the last state.length elements)
+        .slice(state.length * -1);
+      return Object.assign({}, state, {
+        snake: newSnake,
+      });
+    case 'CHANGE_DIRECTION':
+      return Object.assign({}, state, {
+        velocity: action.data,
+      });
     default:
       return state;
   };
