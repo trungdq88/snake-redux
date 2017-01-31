@@ -18,6 +18,8 @@ function draw() {
   if (newY < 0) newY = BOARD_SIZE;
 
   const newHead = { x: newX, y: newY };
+
+  // This method check if the head is collide with `target`
   const omnomnom = target => newHead.x === target.x && newHead.y === target.y;
 
   // Dead?
@@ -80,7 +82,7 @@ function pickPositionThatDoesNotCollideWith(arrayOfPosition) {
 }
 
 store.subscribe(_ => {
-  // Drow background
+  // Draw background
   background(50);
   const { snake, food } = store.getState();
 
