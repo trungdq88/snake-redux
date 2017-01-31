@@ -28,6 +28,14 @@ const reducer = (state = INIT_STATE, action) => {
       return Object.assign({}, state, {
         velocity: action.data,
       });
+    case 'DROP_FOOD':
+      return Object.assign({}, state, {
+        food: action.data,
+      });
+    case 'GROW':
+      return Object.assign({}, state, {
+        length: state.length + 1,
+      });
     default:
       return state;
   };

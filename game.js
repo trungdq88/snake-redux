@@ -19,6 +19,25 @@ function draw() {
 
   const newHead = { x: newX, y: newY };
 
+  // This method check if the head is collide with `target`
+  const omnomnom = target => newHead.x === target.x && newHead.y === target.y;
+
+  // Dead?
+  if (snake.find(omnomnom)) { // Did you just om..nom..nom your tail?
+    store.dispatch({ type: 'RESET' });
+    return;
+  }
+
+  // Eat food
+  if (omnomnom(food)) {
+    store.dispatch({ type: 'GROW' });
+
+    store.dispatch({
+      type: 'DROP_FOOD',
+      data: pickPositionThatDoesNotCollideWith(snake)
+    });
+  }
+
   // Move snake
   store.dispatch({
     type: 'MOVE_SNAKE',
@@ -44,6 +63,21 @@ function keyPressed() {
     type: 'CHANGE_DIRECTION',
     data: newVelocity,
   });
+}
+
+function pickPositionThatDoesNotCollideWith(arrayOfPosition) {
+  const position = () => ({
+    x: floor(random(BOARD_SIZE)),
+    y: floor(random(BOARD_SIZE)),
+  });
+
+  let pos = position();
+  while (arrayOfPosition.find(
+    target => pos.x === target.x && pos.y === target.y
+  )) {
+    pos = position();
+  }
+  return pos;
 }
 
 store.subscribe(_ => {
