@@ -54,7 +54,7 @@ function setup() {
   createCanvas(BOARD_SIZE * SCALE, BOARD_SIZE * SCALE);
 }
 
-// p5.js built-in method
+// p5.js built-in method, called every frame (60 frames per second)
 function draw() {
   // Draw background
   background(50);
@@ -76,3 +76,94 @@ function draw() {
 ```
 
 ![image](https://cloud.githubusercontent.com/assets/4214509/22458404/fa5f5002-e7ce-11e6-8a5b-117c97bcd8ce.png)
+
+## Step 2: State
+
+Now I know that the snake and food will be changed during the game, I should put it into a state, using Redux.
+
+**index.html**:
+Adding Redux (`redux.js`) and create `store.js` file:
+```diff
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Snake Game</title>
+    <script src="p5.min.js" type="text/javascript"></script>
++   <script src="redux.js" type="text/javascript"></script>
++   <script src="store.js" type="text/javascript"></script>
+    <script src="game.js" type="text/javascript"></script>
+  </head>
+  <body>
+  </body>
+</html>
+```
+
+**store.js**:
+State contains:
+- `length` of the snake (or user's score)
+- `snake` is an array keep track of position of every parts of the snake, at the beginning of the game, the snake only have 1 part (its head)
+- `velocity` is the direction the snake is moving to
+- `food` is the position of current food, we put the first food the the center of game board.
+
+```js
+const SCALE = 20;       // px per block
+const BOARD_SIZE = 20;  // blocks
+
+const INIT_STATE = {
+  length: 1,
+  snake: [{ x: 0, y: 0 }], // top left corner
+  velocity: { x: 0, y: 0 }, // standing by
+  food: { // first food placed in center of the board
+    x: Math.floor(BOARD_SIZE / 2),
+    y: Math.floor(BOARD_SIZE / 2),
+  },
+};
+
+const reducer = (state = INIT_STATE, action) => {
+  switch (action.type) {
+    case 'RESET':
+      return INIT_STATE;
+    default:
+      return state;
+  };
+};
+
+const store = Redux.createStore(reducer);
+```
+
+**game.js**:
+Get current state from Redux store and render it to canvas.
+```js
+// p5.js built-in method
+function setup() {
+  createCanvas(BOARD_SIZE * SCALE, BOARD_SIZE * SCALE);
+  store.dispatch({ type: 'RESET' });
+}
+
+// p5.js built-in method, called every frame (60 frames per second)
+function draw() {
+  // Move the snake, and do other things here
+}
+
+store.subscribe(_ => {
+  // Draw background
+  background(50);
+  const { snake, food } = store.getState();
+
+  // Draw snake
+  fill(255);
+  for (var i = 0; i < snake.length; i++) {
+    fill(155 * (i / (snake.length - 1)) + 100);
+    rect(snake[i].x * SCALE, snake[i].y * SCALE, SCALE, SCALE);
+  }
+
+  // Draw food
+  fill(255, 0, 25);
+  rect(food.x * SCALE, food.y * SCALE, SCALE, SCALE);
+});
+```
+
+At this point, the game is still render the same, the only different is we have moved all the states to Redux Store. Next, we will try to move the snake.
+
+# Step 3: Move the snake
