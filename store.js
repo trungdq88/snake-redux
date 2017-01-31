@@ -1,6 +1,6 @@
-const SCALE = 10;       // px per block
-const BOARD_SIZE = 60;  // blocks
-const SPEED = 40;       // blocks per second
+const SCALE = 20;       // px per block
+const BOARD_SIZE = 20;  // blocks
+const SPEED = 10;       // blocks per second
 
 const INIT_STATE = {
   length: 1,
